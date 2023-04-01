@@ -1,5 +1,5 @@
 [package]
-name = "syntax"
+name = "msyntax"
 version = "0.1.0"
 edition = "2021"
 description = "A syntax parsing library for Rust"
