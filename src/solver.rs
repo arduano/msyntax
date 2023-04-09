@@ -6,6 +6,7 @@ use self::{
     cyclical::{validate_no_cyclical_dependencies, CyclicalDependencyError},
     empty_rules::EmptyRuleSolver,
     first_sets::FirstSets,
+    follow_sets::FollowSets,
     inner_relations::InnerRelations,
     structure::EmptySolverRuleValue,
 };
@@ -13,6 +14,7 @@ use self::{
 mod cyclical;
 mod empty_rules;
 mod first_sets;
+mod follow_sets;
 mod identical_check;
 mod inner_relations;
 mod path;
@@ -23,6 +25,7 @@ mod token_sets;
 pub struct PushItem {
     pub id: MatchId,
     pub fields: Vec<EmptySolverRuleValue>,
+    pub linked_to_below: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -47,7 +50,8 @@ impl GrammarSolver {
 
         let empty_rules = EmptyRuleSolver::new(grammar);
         let inner_relations = InnerRelations::new(grammar);
-        let _sets = FirstSets::new(grammar, &empty_rules);
+        let first_sets = FirstSets::new(grammar, &empty_rules);
+        let follow_sets = FollowSets::new(grammar, &empty_rules);
 
         Ok(Self {
             empty_rules,

@@ -39,14 +39,18 @@ impl FirstSets {
                 sets.push(FirstSet { tokens, then });
             }
 
+            // Sort the sets from largest token lengths to smallest
+            sets.sort_by_key(|f| f.tokens.len());
+            sets.reverse();
+
             rules.insert(rule, sets);
         }
-
-        dbg!(&rules);
 
         Self {
             first_sets_per_rule: rules,
         }
+
+        // TODO: Allow gathering duplicate first set warnings per rule
     }
 }
 
@@ -87,7 +91,7 @@ fn recursive_calculate_all_destination_matches(
     }
 
     if let Some(i) = get_match_first_set_index(grammar, empty_rules, next_match) {
-        let last_match = MatchIndex::new_at_index(next_match, i, grammar);
+        let last_match = MatchIndex::new_at_index(next_match, i);
         let full_list = prev_matches.push(&last_match);
 
         let mut as_vec = full_list.iter().cloned().collect::<Vec<_>>();
@@ -102,7 +106,7 @@ fn recursive_calculate_all_destination_matches(
     let match_ = grammar.get(next_match);
 
     for (i, term) in match_.terms.iter().enumerate() {
-        let next_index = &MatchIndex::new_at_index(next_match, i, grammar);
+        let next_index = &MatchIndex::new_at_index(next_match, i);
         let matches = prev_matches.push(&next_index);
 
         match term {
@@ -145,15 +149,21 @@ fn calculate_push_instructions_from_paths(
         // If the start and end are the same, then we can just return the start
         return common_start_instructions
             .iter()
-            .map(|i| convert_match_index_to_push_instruction(grammar, empty, i))
+            .map(|i| convert_match_index_to_push_instruction(grammar, empty, i, true))
             .collect();
     }
 
-    common_start_instructions
+    let start_iter = common_start_instructions.iter().enumerate().map(|(i, mi)| {
+        // Each instruction except for the last one is linked to the next one
+        let is_last = i == common_start_instructions.len() - 1;
+        convert_match_index_to_push_instruction(grammar, empty, mi, !is_last)
+    });
+
+    let end_iter = common_end_instructions
         .iter()
-        .chain(common_end_instructions.iter())
-        .map(|i| convert_match_index_to_push_instruction(grammar, empty, i))
-        .collect()
+        .map(|mi| convert_match_index_to_push_instruction(grammar, empty, mi, true));
+
+    start_iter.chain(end_iter).collect()
 }
 
 /// Return a vector of elements that are common to the starts of all iterators.
@@ -198,12 +208,14 @@ fn convert_match_index_to_push_instruction(
     grammar: &Grammar,
     empty_rules: &EmptyRuleSolver,
     match_index: &MatchIndex,
+    linked_to_below: bool,
 ) -> PushItem {
     let match_ = grammar.get(match_index.id);
 
     let mut push = PushItem {
         id: match_index.id,
         fields: Vec::new(),
+        linked_to_below,
     };
 
     for i in 0..match_index.index {

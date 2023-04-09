@@ -7,6 +7,8 @@ pub enum Rule {
     Add,
     Mul,
     Term,
+    LParen,
+    RParen,
 
     Static,
     Modifier,
