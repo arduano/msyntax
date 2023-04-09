@@ -1,15 +1,14 @@
 use std::collections::{HashMap, HashSet};
 
 use crate::{
-    matches::{Grammar, Group, MatchId, Rule, Term, Token},
-    ref_list::{ERefList, RefList},
+    matches::{Grammar, MatchId, Rule, Term},
+    ref_list::ERefList,
     solver::token_sets::get_set_for_match,
 };
 
 use super::{
     empty_rules::EmptyRuleSolver,
-    path::{MatchIndex, SolverPath},
-    structure::IncompleteMatch,
+    path::MatchIndex,
     token_sets::{get_match_first_set_index, TokenOrGroup},
     PushItem,
 };

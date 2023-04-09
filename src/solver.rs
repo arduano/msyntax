@@ -1,14 +1,13 @@
-use std::collections::HashMap;
 use thiserror::Error;
 
-use crate::matches::{Grammar, Group, MatchId, Rule, Term, Token};
+use crate::matches::{Grammar, MatchId};
 
 use self::{
     cyclical::{validate_no_cyclical_dependencies, CyclicalDependencyError},
     empty_rules::EmptyRuleSolver,
     first_sets::FirstSets,
     inner_relations::InnerRelations,
-    structure::{EmptySolverRuleValue, IncompleteMatch},
+    structure::EmptySolverRuleValue,
 };
 
 mod cyclical;
@@ -17,8 +16,8 @@ mod first_sets;
 mod identical_check;
 mod inner_relations;
 mod path;
-mod token_sets;
 mod structure;
+mod token_sets;
 
 #[derive(Debug, Clone)]
 pub struct PushItem {
@@ -48,7 +47,7 @@ impl GrammarSolver {
 
         let empty_rules = EmptyRuleSolver::new(grammar);
         let inner_relations = InnerRelations::new(grammar);
-        let sets = FirstSets::new(grammar, &empty_rules);
+        let _sets = FirstSets::new(grammar, &empty_rules);
 
         Ok(Self {
             empty_rules,

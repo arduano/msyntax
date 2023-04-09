@@ -1,5 +1,3 @@
-use std::marker::PhantomData;
-
 /// A linked list of references to `RefList`s.
 /// It is useful for keeping track of a function call stack, e.g.
 /// when recursively searching for cyclical dependencies.

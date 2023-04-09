@@ -2,9 +2,9 @@ use crate::matches::*;
 
 mod analysis;
 mod matches;
+mod ref_list;
 mod solver;
 mod structures;
-mod ref_list;
 
 fn make_calc_grammar() -> Grammar {
     let mut grammar = Grammar::new();
@@ -67,7 +67,7 @@ fn make_struct_fn_grammar() -> Grammar {
 fn main() {
     let grammar = make_calc_grammar();
 
-    let solver = solver::GrammarSolver::new(&grammar);
+    let _solver = solver::GrammarSolver::new(&grammar);
 
     dbg!(&grammar);
 }

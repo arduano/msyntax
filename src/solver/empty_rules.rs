@@ -2,10 +2,7 @@ use std::collections::HashMap;
 
 use crate::matches::{Grammar, Rule};
 
-use super::{
-    path::SolverPath,
-    structure::{EmptySolverMatchValue, EmptySolverRuleValue},
-};
+use super::structure::{EmptySolverMatchValue, EmptySolverRuleValue};
 
 #[derive(Debug, Clone)]
 pub struct EmptyRuleSolver {
