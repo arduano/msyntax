@@ -9,9 +9,16 @@ use crate::{
 use super::{
     empty_rules::EmptyRuleSolver,
     path::MatchIndex,
+    structure::EmptySolverRuleValue,
     token_sets::{get_match_first_set_index, TokenOrGroup},
-    PushItem,
 };
+
+#[derive(Debug, Clone)]
+pub struct PushItem {
+    pub id: MatchId,
+    pub fields: Vec<EmptySolverRuleValue>,
+    pub linked_to_below: bool,
+}
 
 #[derive(Debug, Clone)]
 pub struct FirstSet {
@@ -19,14 +26,26 @@ pub struct FirstSet {
     pub then: Vec<PushItem>,
 }
 
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+pub struct StackDisconnect {
+    /// The rule that begins the disconnect. In practice, this should be a list of MatchIndex
+    /// that point to that rule instead.
+    pub parent: Rule,
+
+    /// The child rule, which could
+    pub child: Rule,
+}
+
 #[derive(Debug, Clone)]
 pub struct FirstSets {
     first_sets_per_rule: HashMap<Rule, Vec<FirstSet>>,
+    potential_disconnects: Vec<StackDisconnect>,
 }
 
 impl FirstSets {
     pub fn new(grammar: &Grammar, empty: &EmptyRuleSolver) -> Self {
         let mut rules = HashMap::new();
+        let mut disconnects = HashSet::new();
 
         for rule in grammar.iter_rules() {
             let matches = calculate_all_destination_matches(grammar, empty, rule);
@@ -35,8 +54,14 @@ impl FirstSets {
 
             for (id, paths) in matches {
                 let tokens = get_set_for_match(grammar, empty, id, 0);
-                let then = calculate_push_instructions_from_paths(grammar, empty, &paths);
+                let (then, disconnect) =
+                    calculate_push_instructions_from_paths(grammar, empty, &paths);
+
                 sets.push(FirstSet { tokens, then });
+
+                if let Some(disconnect) = disconnect {
+                    disconnects.insert(disconnect);
+                }
             }
 
             // Sort the sets from largest token lengths to smallest
@@ -48,9 +73,14 @@ impl FirstSets {
 
         Self {
             first_sets_per_rule: rules,
+            potential_disconnects: disconnects.into_iter().collect(),
         }
 
         // TODO: Allow gathering duplicate first set warnings per rule
+    }
+
+    pub fn potential_disconnects(&self) -> &[StackDisconnect] {
+        &self.potential_disconnects
     }
 }
 
@@ -135,7 +165,7 @@ fn calculate_push_instructions_from_paths(
     grammar: &Grammar,
     empty: &EmptyRuleSolver,
     paths: &HashSet<Vec<MatchIndex>>,
-) -> Vec<PushItem> {
+) -> (Vec<PushItem>, Option<StackDisconnect>) {
     // Instructions that all paths start with (until they diverge)
     let common_start_instructions =
         calculate_common_starts(paths.iter().map(|p| p.iter()).collect());
@@ -147,11 +177,33 @@ fn calculate_push_instructions_from_paths(
 
     if common_start_instructions == common_end_instructions {
         // If the start and end are the same, then we can just return the start
-        return common_start_instructions
+        let push_items = common_start_instructions
             .iter()
             .map(|i| convert_match_index_to_push_instruction(grammar, empty, i, true))
             .collect();
+
+        return (push_items, None);
     }
+
+    let disconnect_parent_rule = if let Some(id) = common_start_instructions.last() {
+        // If common start instructions isn't empty, then we use the last rule
+        // (We get the rule from the last match, then get the term at its index, then get the rule from the term)
+        *grammar.get(id.id).terms[id.index].as_rule().unwrap()
+    } else {
+        // If common start instructions is empty, then we can just use the first rule
+        grammar
+            .get(paths.iter().nth(0).unwrap().first().unwrap().id)
+            .rule
+    };
+
+    let disconnect_child_rule = grammar
+        .get(common_end_instructions.first().unwrap().id)
+        .rule;
+
+    let disconnect = Some(StackDisconnect {
+        parent: disconnect_parent_rule,
+        child: disconnect_child_rule,
+    });
 
     let start_iter = common_start_instructions.iter().enumerate().map(|(i, mi)| {
         // Each instruction except for the last one is linked to the next one
@@ -163,7 +215,9 @@ fn calculate_push_instructions_from_paths(
         .iter()
         .map(|mi| convert_match_index_to_push_instruction(grammar, empty, mi, true));
 
-    start_iter.chain(end_iter).collect()
+    let push_items = start_iter.chain(end_iter).collect();
+
+    (push_items, disconnect)
 }
 
 /// Return a vector of elements that are common to the starts of all iterators.

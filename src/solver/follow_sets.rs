@@ -42,8 +42,6 @@ impl FollowSets {
             }
         }
 
-        dbg!(&sets);
-
         Self { sets }
     }
 }
@@ -64,23 +62,20 @@ fn generate_set_for_match(
     while i < match_.terms.len() {
         let term = &match_.terms[i];
 
-        match term {
-            Term::Token(_) | Term::Group(_, _) => {
-                // We break and continue in the next loop.
+        if let Some(rule) = term.as_rule() {
+            sets.push(FollowSet::Enter(EnterRuleFollowSet {
+                rule: *rule,
+                append_extra: emptys_to_append.clone(),
+            }));
+
+            if let Some(empty) = empty.get(*rule) {
+                emptys_to_append.push(empty.clone());
+            } else {
                 break;
             }
-            Term::Rule(rule) => {
-                sets.push(FollowSet::Enter(EnterRuleFollowSet {
-                    rule: *rule,
-                    append_extra: emptys_to_append.clone(),
-                }));
-
-                if let Some(empty) = empty.get(*rule) {
-                    emptys_to_append.push(empty.clone());
-                } else {
-                    break;
-                }
-            }
+        } else {
+            // We break and continue in the next loop.
+            break;
         }
 
         i += 1;

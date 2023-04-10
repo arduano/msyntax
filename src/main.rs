@@ -65,7 +65,7 @@ fn make_struct_fn_grammar() -> Grammar {
 }
 
 fn main() {
-    let grammar = make_struct_fn_grammar();
+    let grammar = make_calc_grammar();
 
     let _solver = solver::GrammarSolver::new(&grammar);
 

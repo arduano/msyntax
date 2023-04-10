@@ -6,19 +6,37 @@ use crate::{
 };
 
 type WrapsPerMatch = HashMap<MatchId, HashMap<Rule, Vec<MatchId>>>;
+type WrapsPerRule = HashMap<Rule, HashMap<Rule, Vec<MatchId>>>;
 
 pub struct InnerRelations {
     /// The wraps for each match, which are used to bubble up the value of a match.
     /// Each time, the match gets wrapped into its rule, then the rule gets wrapped in another
     /// match listed in the array, then wrapped in its rule, and so on.
     wraps_per_match: WrapsPerMatch,
+
+    /// Same as above, except lists the wraps for each rule to reach other rules.
+    wraps_per_rule: WrapsPerRule,
 }
 
 impl InnerRelations {
     pub fn new(grammar: &Grammar) -> Self {
         let wraps_per_match = calc_wraps_per_match(grammar);
+        let mut wraps_per_rule = HashMap::new();
 
-        Self { wraps_per_match }
+        for (match_id, rules) in &wraps_per_match {
+            let match_ = grammar.get(*match_id);
+            for (rule, wraps) in rules {
+                wraps_per_rule
+                    .entry(match_.rule)
+                    .or_insert_with(HashMap::new)
+                    .insert(*rule, wraps.clone());
+            }
+        }
+
+        Self {
+            wraps_per_match,
+            wraps_per_rule,
+        }
     }
 }
 

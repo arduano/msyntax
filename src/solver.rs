@@ -8,7 +8,9 @@ use self::{
     first_sets::FirstSets,
     follow_sets::FollowSets,
     inner_relations::InnerRelations,
+    seal_rules::SealRules,
     structure::EmptySolverRuleValue,
+    wrap_sets::WrapSets,
 };
 
 mod cyclical;
@@ -18,20 +20,10 @@ mod follow_sets;
 mod identical_check;
 mod inner_relations;
 mod path;
+mod seal_rules;
 mod structure;
 mod token_sets;
-
-#[derive(Debug, Clone)]
-pub struct PushItem {
-    pub id: MatchId,
-    pub fields: Vec<EmptySolverRuleValue>,
-    pub linked_to_below: bool,
-}
-
-#[derive(Debug, Clone)]
-pub enum SolverInstruction {
-    Push(PushItem),
-}
+mod wrap_sets;
 
 #[derive(Debug, Error)]
 pub enum GrammarError {
@@ -52,6 +44,8 @@ impl GrammarSolver {
         let inner_relations = InnerRelations::new(grammar);
         let first_sets = FirstSets::new(grammar, &empty_rules);
         let follow_sets = FollowSets::new(grammar, &empty_rules);
+        let wrap_sets = WrapSets::new(grammar, &empty_rules, &first_sets);
+        let reduce_sets = SealRules::new(grammar, &empty_rules, );
 
         Ok(Self {
             empty_rules,
