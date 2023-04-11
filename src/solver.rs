@@ -7,7 +7,6 @@ use self::{
     empty_rules::EmptyRuleSolver,
     first_sets::FirstSets,
     follow_sets::FollowSets,
-    inner_relations::InnerRelations,
     seal_rules::SealRules,
     wrap_sets::WrapSets,
 };
@@ -17,7 +16,6 @@ mod empty_rules;
 mod first_sets;
 mod follow_sets;
 mod identical_check;
-mod inner_relations;
 mod path;
 mod seal_rules;
 mod structure;
@@ -41,7 +39,6 @@ pub enum GrammarError {
 pub struct GrammarSolver {
     grammar: Grammar,
     empty_rules: EmptyRuleSolver,
-    inner_relations: InnerRelations,
     first_sets: FirstSets,
     follow_sets: FollowSets,
     wrap_sets: WrapSets,
@@ -53,7 +50,6 @@ impl GrammarSolver {
         validate_no_cyclical_dependencies(&grammar)?;
 
         let empty_rules = EmptyRuleSolver::new(&grammar);
-        let inner_relations = InnerRelations::new(&grammar);
         let first_sets = FirstSets::new(&grammar, &empty_rules);
         let follow_sets = FollowSets::new(&grammar, &empty_rules);
         let wrap_sets = WrapSets::new(&grammar, &empty_rules, &first_sets);
@@ -62,7 +58,6 @@ impl GrammarSolver {
         Ok(Self {
             grammar,
             empty_rules,
-            inner_relations,
             first_sets,
             follow_sets,
             wrap_sets,
