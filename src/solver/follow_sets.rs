@@ -10,7 +10,7 @@ use super::{
 #[derive(Debug, Clone)]
 pub struct DirectFollowSet {
     pub tokens: Vec<TokenOrGroup>,
-    pub append_extra: Vec<EmptySolverRuleValue>,
+    pub append_extra_emptys: Vec<EmptySolverRuleValue>,
 }
 
 #[derive(Debug, Clone)]
@@ -103,7 +103,7 @@ fn generate_set_for_match(
     if tokens.len() > 0 {
         sets.push(FollowSet::Direct(DirectFollowSet {
             tokens,
-            append_extra: emptys_to_append.clone(),
+            append_extra_emptys: emptys_to_append.clone(),
         }));
     }
 

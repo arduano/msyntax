@@ -1,6 +1,6 @@
 use thiserror::Error;
 
-use crate::matches::{Grammar, MatchId};
+use crate::matches::{Grammar, Match, MatchId, Rule};
 
 use self::{
     cyclical::{validate_no_cyclical_dependencies, CyclicalDependencyError},
@@ -9,7 +9,6 @@ use self::{
     follow_sets::FollowSets,
     inner_relations::InnerRelations,
     seal_rules::SealRules,
-    structure::EmptySolverRuleValue,
     wrap_sets::WrapSets,
 };
 
@@ -25,6 +24,14 @@ mod structure;
 mod token_sets;
 mod wrap_sets;
 
+pub use first_sets::FirstSet;
+pub use follow_sets::FollowSet;
+pub use path::MatchIndex;
+pub use seal_rules::SealAction;
+pub use structure::EmptySolverRuleValue;
+pub use token_sets::TokenOrGroup;
+pub use wrap_sets::{EmptyWrapAction, InsertAction, WrapAction, WrapContext, WrapData};
+
 #[derive(Debug, Error)]
 pub enum GrammarError {
     #[error("Cyclical dependency found: {0:?}")]
@@ -32,73 +39,71 @@ pub enum GrammarError {
 }
 
 pub struct GrammarSolver {
+    grammar: Grammar,
     empty_rules: EmptyRuleSolver,
     inner_relations: InnerRelations,
+    first_sets: FirstSets,
+    follow_sets: FollowSets,
+    wrap_sets: WrapSets,
+    seal_rules: SealRules,
 }
 
 impl GrammarSolver {
-    pub fn new(grammar: &Grammar) -> Result<Self, GrammarError> {
-        validate_no_cyclical_dependencies(grammar)?;
+    pub fn new(grammar: Grammar) -> Result<Self, GrammarError> {
+        validate_no_cyclical_dependencies(&grammar)?;
 
-        let empty_rules = EmptyRuleSolver::new(grammar);
-        let inner_relations = InnerRelations::new(grammar);
-        let first_sets = FirstSets::new(grammar, &empty_rules);
-        let follow_sets = FollowSets::new(grammar, &empty_rules);
-        let wrap_sets = WrapSets::new(grammar, &empty_rules, &first_sets);
-        let reduce_sets = SealRules::new(grammar, &empty_rules, );
+        let empty_rules = EmptyRuleSolver::new(&grammar);
+        let inner_relations = InnerRelations::new(&grammar);
+        let first_sets = FirstSets::new(&grammar, &empty_rules);
+        let follow_sets = FollowSets::new(&grammar, &empty_rules);
+        let wrap_sets = WrapSets::new(&grammar, &empty_rules, &first_sets);
+        let seal_rules = SealRules::new(&grammar, &empty_rules);
 
         Ok(Self {
+            grammar,
             empty_rules,
             inner_relations,
+            first_sets,
+            follow_sets,
+            wrap_sets,
+            seal_rules,
         })
     }
+
+    pub fn first_set_for_rule(&self, rule: Rule) -> &[FirstSet] {
+        &self
+            .first_sets
+            .first_sets_per_rule
+            .get(&rule)
+            .map(|s| s.as_slice())
+            .unwrap_or(&[])
+    }
+
+    pub fn follow_set_for_match(&self, mi: MatchIndex) -> &[FollowSet] {
+        self.follow_sets
+            .sets
+            .get(&mi)
+            .map(|s| s.as_slice())
+            .unwrap_or(&[])
+    }
+
+    pub fn root_rule(&self) -> Rule {
+        Rule::S
+    }
+
+    pub fn get_match_rule(&self, id: MatchId) -> Rule {
+        self.grammar.get(id).rule
+    }
+
+    pub fn get_match(&self, id: MatchId) -> &Match {
+        self.grammar.get(id)
+    }
+
+    pub fn get_seal_action_for_match(&self, id: MatchIndex) -> Option<&SealAction> {
+        self.seal_rules.rules.get(&id)
+    }
+
+    pub fn get_wrap_data(&self, parent: Rule, child: Rule) -> Option<&WrapData> {
+        self.wrap_sets.sets.get(&WrapContext { parent, child })
+    }
 }
-
-// fn build_tokens_for_match(grammar: &Grammar) -> HashMap<MatchId, Vec<TokenOrGroup>> {
-//     let mut tokens_for_match = HashMap::new();
-
-//     for (match_id, match_) in grammar.iter_matches() {
-//         let mut tokens = Vec::new();
-
-//         for term in &match_.terms {
-//             match term {
-//                 Term::Token(token) => tokens.push(TokenOrGroup::Token(*token)),
-//                 Term::Group(group, rule) => tokens.push(TokenOrGroup::Group(*group, *rule)),
-//                 Term::Rule(_) => break,
-//             }
-//         }
-
-//         tokens_for_match.insert(match_id, tokens);
-//     }
-
-//     dbg!(&tokens_for_match);
-
-//     tokens_for_match
-// }
-
-// struct RuleEntry {
-//     tokens: Vec<TokenOrGroup>,
-//     id: MatchId,
-// }
-
-// fn build_possible_match_entries(grammar: &Grammar) -> HashMap<Rule, Vec> {
-//     let mut tokens_for_match = HashMap::new();
-
-//     for (match_id, match_) in grammar.iter_matches() {
-//         let mut tokens = Vec::new();
-
-//         for term in &match_.terms {
-//             match term {
-//                 Term::Token(token) => tokens.push(TokenOrGroup::Token(*token)),
-//                 Term::Group(group, rule) => tokens.push(TokenOrGroup::Group(*group, *rule)),
-//                 Term::Rule(_) => break,
-//             }
-//         }
-
-//         tokens_for_match.insert(match_id, tokens);
-//     }
-
-//     dbg!(&tokens_for_match);
-
-//     tokens_for_match
-// }

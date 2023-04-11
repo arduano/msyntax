@@ -16,8 +16,8 @@ use super::{
 #[derive(Debug, Clone)]
 pub struct PushItem {
     pub id: MatchId,
-    pub fields: Vec<EmptySolverRuleValue>,
-    pub linked_to_below: bool,
+    pub append_empty_fields: Vec<EmptySolverRuleValue>,
+    pub linked_to_above: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -38,8 +38,8 @@ pub struct StackDisconnect {
 
 #[derive(Debug, Clone)]
 pub struct FirstSets {
-    first_sets_per_rule: HashMap<Rule, Vec<FirstSet>>,
-    potential_disconnects: Vec<StackDisconnect>,
+    pub first_sets_per_rule: HashMap<Rule, Vec<FirstSet>>,
+    pub potential_disconnects: Vec<StackDisconnect>,
 }
 
 impl FirstSets {
@@ -77,10 +77,6 @@ impl FirstSets {
         }
 
         // TODO: Allow gathering duplicate first set warnings per rule
-    }
-
-    pub fn potential_disconnects(&self) -> &[StackDisconnect] {
-        &self.potential_disconnects
     }
 }
 
@@ -205,15 +201,15 @@ fn calculate_push_instructions_from_paths(
         child: disconnect_child_rule,
     });
 
-    let start_iter = common_start_instructions.iter().enumerate().map(|(i, mi)| {
-        // Each instruction except for the last one is linked to the next one
-        let is_last = i == common_start_instructions.len() - 1;
-        convert_match_index_to_push_instruction(grammar, empty, mi, !is_last)
-    });
-
-    let end_iter = common_end_instructions
+    let start_iter = common_start_instructions
         .iter()
         .map(|mi| convert_match_index_to_push_instruction(grammar, empty, mi, true));
+
+    let end_iter = common_end_instructions.iter().enumerate().map(|(i, mi)| {
+        // Each instruction except for the first one is linked to the parent
+        let is_last = i == 0;
+        convert_match_index_to_push_instruction(grammar, empty, mi, !is_last)
+    });
 
     let push_items = start_iter.chain(end_iter).collect();
 
@@ -262,14 +258,14 @@ fn convert_match_index_to_push_instruction(
     grammar: &Grammar,
     empty_rules: &EmptyRuleSolver,
     match_index: &MatchIndex,
-    linked_to_below: bool,
+    linked_to_above: bool,
 ) -> PushItem {
     let match_ = grammar.get(match_index.id);
 
     let mut push = PushItem {
         id: match_index.id,
-        fields: Vec::new(),
-        linked_to_below,
+        append_empty_fields: Vec::new(),
+        linked_to_above,
     };
 
     for i in 0..match_index.index {
@@ -284,7 +280,7 @@ fn convert_match_index_to_push_instruction(
             }
             Term::Rule(rule) => {
                 if let Some(empty) = empty_rules.get(*rule) {
-                    push.fields.push(empty.clone());
+                    push.append_empty_fields.push(empty.clone());
                 } else {
                     unreachable!();
                 }

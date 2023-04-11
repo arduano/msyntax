@@ -12,19 +12,16 @@ use super::{
     structure::EmptySolverRuleValue,
     token_sets::TokenOrGroup,
 };
-/// Describes a single value in an empty wrap action. The point is to fill an entire match
-/// with all if its values, so all the values can either be the child rule, or an empty value.
-#[derive(Debug, Clone)]
-pub enum EmptyWrapValue {
-    Child,
-    Empty(EmptySolverRuleValue),
-}
 
 /// Describes a single step in wrapping an item and bubbling it up into a parent rule.
 #[derive(Debug, Clone)]
 pub struct EmptyWrapAction {
-    match_id: MatchId,
-    fields: Vec<EmptyWrapValue>,
+    pub match_id: MatchId,
+
+    // The empty values to the left side of the match
+    pub left_empty: Vec<EmptySolverRuleValue>,
+    // The empty values to the right side of the match
+    pub right_empty: Vec<EmptySolverRuleValue>,
 }
 
 #[derive(Debug, Clone)]
@@ -42,7 +39,7 @@ pub struct WrapAction {
     // Then wrap it using the following actions:
     pub wrap_actions: Vec<EmptyWrapAction>,
 
-    // And then become the match in the index, with the following fields:
+    // And then become the match in the index, with the following empty fields:
     pub append_empty: Vec<EmptySolverRuleValue>,
     // And then append the child rule too.
 }
@@ -61,8 +58,8 @@ pub struct WrapContext {
 /// actions to insert it.
 #[derive(Debug, Clone)]
 pub struct WrapData {
-    wrap_actions: Vec<WrapAction>,
-    insert_action: Option<InsertAction>,
+    pub wrap_actions: Vec<WrapAction>,
+    pub insert_action: Option<InsertAction>,
 }
 
 pub struct WrapSets {
@@ -77,7 +74,7 @@ impl WrapSets {
         let mut potential_disconnects = HashMap::new();
 
         // Populate the initial potential disconnects map.
-        for disconnect in first_sets.potential_disconnects() {
+        for disconnect in &first_sets.potential_disconnects {
             potential_disconnects
                 .entry(disconnect.parent)
                 .or_insert_with(HashSet::new)
@@ -123,9 +120,6 @@ impl WrapSets {
             }
         }
 
-        dbg!(first_sets.potential_disconnects());
-        dbg!(&sets);
-
         Self { sets }
     }
 }
@@ -142,6 +136,13 @@ fn get_wrap_data_for(ctx: &WrapContext, grammar: &Grammar, empty: &EmptyRuleSolv
         wrap_actions: HashMap::new(),
         insert_actions: Vec::new(),
     };
+
+    if ctx.parent == ctx.child {
+        // If the parent and child are the same, then we we can just add a direct insert action.
+        builder.insert_actions.push(InsertAction {
+            wrap_actions: Vec::new(),
+        });
+    }
 
     recursive_calculate_all_destination_matches_for_rule(
         grammar,
@@ -296,20 +297,21 @@ fn extend_builder_from_matches(
 
         if can_empty_wrap {
             // Map the fields to the empty values
-            let match_fields = match_.terms.iter().enumerate();
-            let match_fields = match_fields.map(|(i, term)| {
-                // If it's the current match index, then it's a child, otherwise it's empty
-                if i == wrap.index.index {
-                    EmptyWrapValue::Child
-                } else {
-                    let value = empty_rules.get(*term.as_rule().unwrap()).unwrap();
-                    EmptyWrapValue::Empty(value.clone())
-                }
-            });
+
+            let terms_into_emptys = |terms: &[Term]| -> Vec<EmptySolverRuleValue> {
+                terms
+                    .iter()
+                    .map(|term| empty_rules.get(*term.as_rule().unwrap()).unwrap().clone())
+                    .collect()
+            };
+
+            let left_empty = terms_into_emptys(&match_.terms[0..wrap.index.index]);
+            let right_empty = terms_into_emptys(&match_.terms[wrap.index.index + 1..]);
 
             let wrap_action = EmptyWrapAction {
                 match_id: wrap.index.id,
-                fields: match_fields.collect(),
+                left_empty,
+                right_empty,
             };
 
             empty_wrap_actions.push(wrap_action);

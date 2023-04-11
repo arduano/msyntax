@@ -1,6 +1,9 @@
+use interpreter::{solve, ITokenOrGroup};
+
 use crate::matches::*;
 
 mod analysis;
+mod interpreter;
 mod matches;
 mod ref_list;
 mod solver;
@@ -64,10 +67,58 @@ fn make_struct_fn_grammar() -> Grammar {
     grammar
 }
 
-fn main() {
-    let grammar = make_calc_grammar();
+fn make_array_grammar() -> Grammar {
+    let mut grammar = Grammar::new();
+    grammar.add(
+        Rule::S,
+        vec![Term::Rule(Rule::Expr), Term::Token(Token::Eof)],
+    );
+    grammar.add(
+        Rule::Expr,
+        vec![Term::Rule(Rule::Expr), Term::Rule(Rule::Term)],
+    );
+    grammar.add(Rule::Expr, vec![Term::Rule(Rule::Term)]);
+    grammar.add(Rule::Expr, vec![]);
+    grammar.add(Rule::Term, vec![Term::Token(Token::Num)]);
 
-    let _solver = solver::GrammarSolver::new(&grammar);
+    grammar
+}
+
+fn main() {
+    let grammar = make_array_grammar();
+
+    let solver = solver::GrammarSolver::new(grammar).unwrap();
+
+    // let tokens = vec![
+    //     ITokenOrGroup::Token(Token::Num),
+    //     ITokenOrGroup::Token(Token::Plus),
+    //     ITokenOrGroup::Token(Token::Num),
+    //     ITokenOrGroup::Token(Token::Star),
+    //     ITokenOrGroup::Token(Token::Num),
+    //     ITokenOrGroup::Token(Token::Plus),
+    //     ITokenOrGroup::Token(Token::Num),
+    //     ITokenOrGroup::Token(Token::Eof),
+    // ];
+
+    let tokens = vec![
+        // ITokenOrGroup::Token(Token::Pub),
+        // ITokenOrGroup::Token(Token::Star),
+        ITokenOrGroup::Token(Token::Struct),
+        ITokenOrGroup::Token(Token::Eof),
+    ];
+
+    let tokens = vec![
+        // ITokenOrGroup::Token(Token::Num),
+        // ITokenOrGroup::Token(Token::Num),
+        // ITokenOrGroup::Token(Token::Num),
+        ITokenOrGroup::Token(Token::Num),
+        // ITokenOrGroup::Token(Token::Num),
+        ITokenOrGroup::Token(Token::Num),
+        ITokenOrGroup::Token(Token::Eof),
+    ];
+
+    let result = solve(&solver, tokens);
+    dbg!(result);
 
     // dbg!(&grammar);
 }

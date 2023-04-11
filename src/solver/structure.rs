@@ -2,21 +2,21 @@ use crate::matches::{MatchId, Rule};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct EmptySolverMatchValue {
-    match_: MatchId,
-    fields: Vec<EmptySolverRuleValue>,
+    pub id: MatchId,
+    pub fields: Vec<EmptySolverRuleValue>,
 }
 
 impl EmptySolverMatchValue {
-    pub fn new(match_: MatchId, fields: Vec<EmptySolverRuleValue>) -> Self {
-        Self { match_, fields }
+    pub fn new(id: MatchId, fields: Vec<EmptySolverRuleValue>) -> Self {
+        Self { id, fields }
     }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct EmptySolverRuleValue {
-    rule: Rule,
-    match_index: usize,
-    match_value: EmptySolverMatchValue,
+    pub rule: Rule,
+    pub match_index: usize,
+    pub match_value: EmptySolverMatchValue,
 }
 
 impl EmptySolverRuleValue {

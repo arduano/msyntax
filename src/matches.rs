@@ -63,8 +63,14 @@ impl Match {
     }
 }
 
-#[derive(Debug, Clone, Copy, Hash, Eq, PartialEq)]
+#[derive(Clone, Copy, Hash, Eq, PartialEq)]
 pub struct MatchId(u32);
+
+impl std::fmt::Debug for MatchId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "MatchId({})", self.0)
+    }
+}
 
 #[derive(Debug, Clone)]
 pub struct Grammar {
