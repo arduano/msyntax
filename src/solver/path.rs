@@ -1,6 +1,4 @@
-use std::collections::VecDeque;
-
-use crate::matches::{Grammar, MatchId, Rule};
+use crate::matches::MatchId;
 
 #[derive(Debug, Clone, Copy, Hash, Eq, PartialEq)]
 pub struct MatchIndex {

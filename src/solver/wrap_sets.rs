@@ -1,16 +1,13 @@
 use std::collections::{HashMap, HashSet};
 
 use crate::{
-    matches::{Grammar, MatchId, Rule, Term, Token},
+    matches::{Grammar, MatchId, Rule, Term},
     ref_list::ERefList,
 };
 
 use super::{
-    empty_rules::EmptyRuleSolver,
-    first_sets::{FirstSets, StackDisconnect},
-    path::MatchIndex,
+    empty_rules::EmptyRuleSolver, first_sets::FirstSets, path::MatchIndex,
     structure::EmptySolverRuleValue,
-    token_sets::TokenOrGroup,
 };
 
 /// Describes a single step in wrapping an item and bubbling it up into a parent rule.

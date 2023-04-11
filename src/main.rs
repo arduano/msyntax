@@ -100,7 +100,7 @@ fn main() {
     //     ITokenOrGroup::Token(Token::Eof),
     // ];
 
-    let tokens = vec![
+    let _tokens = vec![
         // ITokenOrGroup::Token(Token::Pub),
         // ITokenOrGroup::Token(Token::Star),
         ITokenOrGroup::Token(Token::Struct),

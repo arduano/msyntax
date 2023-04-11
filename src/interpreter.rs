@@ -3,8 +3,8 @@ use core::panic;
 use crate::{
     matches::{MatchId, Rule, Token},
     solver::{
-        EmptySolverRuleValue, EmptyWrapAction, FirstSet, FollowSet, GrammarSolver, InsertAction,
-        MatchIndex, TokenOrGroup, WrapAction,
+        EmptySolverRuleValue, EmptyWrapAction, FirstSet, FollowSet, GrammarSolver, MatchIndex,
+        TokenOrGroup,
     },
 };
 
@@ -405,8 +405,8 @@ impl<'a> Interpreter<'a> {
 
         let should_propagate_inner_rule = if stack_item.match_value.values.len() == 1 {
             match stack_item.match_value.values.first().unwrap() {
-                Value::Token(token) => false,
-                Value::Rule(rule) => true,
+                Value::Token(_token) => false,
+                Value::Rule(_rule) => true,
             }
         } else {
             false
