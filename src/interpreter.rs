@@ -131,7 +131,8 @@ impl<'a> Interpreter<'a> {
         }
 
         loop {
-            dbg!(&self.stack);
+            self.print_stack();
+
             let mi = self.get_match_index_of_top_stack_item();
 
             let follow_set = self.solver.follow_set_for_match(mi);
@@ -567,5 +568,194 @@ impl<'a> Interpreter<'a> {
         }
 
         WrapStatus::Error
+    }
+
+    fn print_stack(&self) {
+        let display = StackDisplay::new(&self.stack);
+
+        println!("{}", display);
+    }
+}
+
+//
+// ====
+// Print helpers
+// ===
+//
+
+impl std::fmt::Display for RuleValue {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        writeln!(
+            f,
+            "{}",
+            RuleDisplay {
+                rule: self,
+                spacing: Spacing(0),
+            }
+        )
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
+struct Spacing(usize);
+
+impl std::fmt::Display for Spacing {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        for _ in 0..self.0 {
+            write!(f, "    ")?;
+        }
+
+        Ok(())
+    }
+}
+
+struct StackItemDisplay<'a> {
+    item: &'a StackItem,
+    spacing: Spacing,
+}
+
+impl std::fmt::Display for StackItemDisplay<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let new_spacing = Spacing(self.spacing.0 + 1);
+        let values_list = ValuesListDisplay {
+            values: &self.item.match_value.values,
+            spacing: new_spacing,
+        };
+
+        writeln!(f, "{}StackItem {{", self.spacing)?;
+
+        writeln!(
+            f,
+            "{}linked_to_above: {},",
+            new_spacing, self.item.linked_to_above
+        )?;
+        writeln!(
+            f,
+            "{}match: {:?},",
+            new_spacing, self.item.match_value.match_id
+        )?;
+        writeln!(f, "{}values: {},", new_spacing, values_list)?;
+        write!(f, "{}}}", self.spacing)?;
+
+        Ok(())
+    }
+}
+
+struct StackDisplay<'a> {
+    item: &'a [StackItem],
+}
+
+impl<'a> StackDisplay<'a> {
+    fn new(stack: &'a [StackItem]) -> Self {
+        Self { item: &stack }
+    }
+}
+
+impl std::fmt::Display for StackDisplay<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        writeln!(f, "stack: [")?;
+
+        for item in self.item {
+            writeln!(
+                f,
+                "{},",
+                StackItemDisplay {
+                    item,
+                    spacing: Spacing(1)
+                }
+            )?;
+        }
+
+        writeln!(f, "]")?;
+
+        Ok(())
+    }
+}
+
+struct ValuesListDisplay<'a> {
+    values: &'a [Value],
+    spacing: Spacing,
+}
+
+impl std::fmt::Display for ValuesListDisplay<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        writeln!(f, "[",)?;
+
+        let next_spacing = Spacing(self.spacing.0 + 1);
+        for value in self.values {
+            writeln!(
+                f,
+                "{},",
+                ValueDisplay {
+                    value,
+                    spacing: next_spacing
+                }
+            )?;
+        }
+
+        write!(f, "{}]", self.spacing)?;
+
+        Ok(())
+    }
+}
+
+struct RuleDisplay<'a> {
+    rule: &'a RuleValue,
+    spacing: Spacing,
+}
+
+impl std::fmt::Display for RuleDisplay<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let values_list = ValuesListDisplay {
+            values: &self.rule.values,
+            spacing: self.spacing,
+        };
+
+        write!(
+            f,
+            "{}{:?}({:?}) {}",
+            self.spacing, self.rule.rule, self.rule.match_id, values_list
+        )
+    }
+}
+
+struct MatchDisplay<'a> {
+    match_: &'a MatchValue,
+    spacing: Spacing,
+}
+
+impl std::fmt::Display for MatchDisplay<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let values_list = ValuesListDisplay {
+            values: &self.match_.values,
+            spacing: self.spacing,
+        };
+
+        write!(
+            f,
+            "{}{:?} {}",
+            self.spacing, self.match_.match_id, values_list
+        )
+    }
+}
+
+struct ValueDisplay<'a> {
+    value: &'a Value,
+    spacing: Spacing,
+}
+
+impl std::fmt::Display for ValueDisplay<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self.value {
+            Value::Token(token) => write!(f, "{}{:?}", self.spacing, token),
+            Value::Rule(rule) => write!(
+                f,
+                "{}",
+                RuleDisplay {
+                    rule,
+                    spacing: self.spacing
+                }
+            ),
+        }
     }
 }

@@ -1,17 +1,10 @@
-use thiserror::Error;
-
 use crate::matches::{Grammar, Match, MatchId, Rule};
 
 use self::{
-    cyclical::{validate_no_cyclical_dependencies, CyclicalDependencyError},
-    empty_rules::EmptyRuleSolver,
-    first_sets::FirstSets,
-    follow_sets::FollowSets,
-    seal_rules::SealRules,
-    wrap_sets::WrapSets,
+    empty_rules::EmptyRuleSolver, first_sets::FirstSets, follow_sets::FollowSets,
+    seal_rules::SealRules, wrap_sets::WrapSets,
 };
 
-mod cyclical;
 mod empty_rules;
 mod first_sets;
 mod follow_sets;
@@ -29,12 +22,6 @@ pub use structure::EmptySolverRuleValue;
 pub use token_sets::TokenOrGroup;
 pub use wrap_sets::{EmptyWrapAction, InsertAction, WrapAction, WrapContext, WrapData};
 
-#[derive(Debug, Error)]
-pub enum GrammarError {
-    #[error("Cyclical dependency found: {0:?}")]
-    Cyclical(#[from] CyclicalDependencyError),
-}
-
 pub struct GrammarSolver {
     grammar: Grammar,
     first_sets: FirstSets,
@@ -44,22 +31,20 @@ pub struct GrammarSolver {
 }
 
 impl GrammarSolver {
-    pub fn new(grammar: Grammar) -> Result<Self, GrammarError> {
-        validate_no_cyclical_dependencies(&grammar)?;
-
+    pub fn new(grammar: Grammar) -> Self {
         let empty_rules = EmptyRuleSolver::new(&grammar);
         let first_sets = FirstSets::new(&grammar, &empty_rules);
         let follow_sets = FollowSets::new(&grammar, &empty_rules);
         let wrap_sets = WrapSets::new(&grammar, &empty_rules, &first_sets);
         let seal_rules = SealRules::new(&grammar, &empty_rules);
 
-        Ok(Self {
+        Self {
             grammar,
             first_sets,
             follow_sets,
             wrap_sets,
             seal_rules,
-        })
+        }
     }
 
     pub fn first_set_for_rule(&self, rule: Rule) -> &[FirstSet] {

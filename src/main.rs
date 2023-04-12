@@ -108,35 +108,35 @@ fn make_array_grammar() -> Grammar {
 fn main() {
     let grammar = make_calc_grammar();
 
-    let solver = solver::GrammarSolver::new(grammar).unwrap();
-
-    // let tokens = vec![
-    //     ITokenOrGroup::Token(Token::Start),
-    //     ITokenOrGroup::Token(Token::Num),
-    //     ITokenOrGroup::Token(Token::Plus),
-    //     ITokenOrGroup::Token(Token::Num),
-    //     ITokenOrGroup::Token(Token::Star),
-    //     ITokenOrGroup::Token(Token::Num),
-    //     ITokenOrGroup::Token(Token::Plus),
-    //     ITokenOrGroup::Token(Token::Num),
-    //     ITokenOrGroup::Token(Token::Eof),
-    // ];
+    let solver = solver::GrammarSolver::new(grammar);
 
     let tokens = vec![
         ITokenOrGroup::Token(Token::Start),
-        ITokenOrGroup::Group(vec![
-            ITokenOrGroup::Token(Token::Start),
-            ITokenOrGroup::Token(Token::Num),
-            ITokenOrGroup::Token(Token::Plus),
-            ITokenOrGroup::Token(Token::Num),
-            ITokenOrGroup::Token(Token::Eof),
-        ]),
+        ITokenOrGroup::Token(Token::Num),
+        ITokenOrGroup::Token(Token::Plus),
+        ITokenOrGroup::Token(Token::Num),
         ITokenOrGroup::Token(Token::Star),
         ITokenOrGroup::Token(Token::Num),
         ITokenOrGroup::Token(Token::Plus),
         ITokenOrGroup::Token(Token::Num),
         ITokenOrGroup::Token(Token::Eof),
     ];
+
+    // let tokens = vec![
+    //     ITokenOrGroup::Token(Token::Start),
+    //     ITokenOrGroup::Group(vec![
+    //         ITokenOrGroup::Token(Token::Start),
+    //         ITokenOrGroup::Token(Token::Num),
+    //         ITokenOrGroup::Token(Token::Plus),
+    //         ITokenOrGroup::Token(Token::Num),
+    //         ITokenOrGroup::Token(Token::Eof),
+    //     ]),
+    //     ITokenOrGroup::Token(Token::Star),
+    //     ITokenOrGroup::Token(Token::Num),
+    //     ITokenOrGroup::Token(Token::Plus),
+    //     ITokenOrGroup::Token(Token::Num),
+    //     ITokenOrGroup::Token(Token::Eof),
+    // ];
 
     // let _tokens = vec![
     //     ITokenOrGroup::Token(Token::Start),
@@ -159,7 +159,7 @@ fn main() {
     // ];
 
     let result = solve(&solver, tokens);
-    dbg!(result);
+    println!("{}", result);
 
     // dbg!(&grammar);
 }
