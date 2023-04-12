@@ -10,7 +10,7 @@ use super::{
     empty_rules::EmptyRuleSolver,
     path::MatchIndex,
     structure::EmptySolverRuleValue,
-    token_sets::{get_match_first_set_index, TokenOrGroup},
+    token_sets::{get_match_set_start_index, TokenOrGroup},
 };
 
 #[derive(Debug, Clone)]
@@ -57,7 +57,9 @@ impl FirstSets {
                 let (then, disconnect) =
                     calculate_push_instructions_from_paths(grammar, empty, &paths);
 
-                sets.push(FirstSet { tokens, then });
+                if let Some(then) = then {
+                    sets.push(FirstSet { tokens, then });
+                }
 
                 if let Some(disconnect) = disconnect {
                     disconnects.insert(disconnect);
@@ -109,14 +111,7 @@ fn recursive_calculate_all_destination_matches(
     next_match: MatchId,
     destinations: &mut HashMap<MatchId, HashSet<Vec<MatchIndex>>>,
 ) {
-    // Check if next_match exists in prev_matches, if it doesn then we skip
-    for prev_match in prev_matches.iter() {
-        if prev_match.id == next_match {
-            return;
-        }
-    }
-
-    if let Some(i) = get_match_first_set_index(grammar, empty_rules, next_match) {
+    if let Some(i) = get_match_set_start_index(grammar, empty_rules, 0, next_match) {
         let last_match = MatchIndex::new_at_index(next_match, i);
         let full_list = prev_matches.push(&last_match);
 
@@ -129,6 +124,14 @@ fn recursive_calculate_all_destination_matches(
             .insert(as_vec);
     }
 
+    // Check if next_match exists in prev_matches, if it does then we skip
+    // the recursive step.
+    for prev_match in prev_matches.iter() {
+        if prev_match.id == next_match {
+            return;
+        }
+    }
+
     let match_ = grammar.get(next_match);
 
     for (i, term) in match_.terms.iter().enumerate() {
@@ -136,8 +139,8 @@ fn recursive_calculate_all_destination_matches(
         let matches = prev_matches.push(&next_index);
 
         match term {
-            Term::Token(_) => break,
-            Term::Group(_, _) => break,
+            Term::Token(_) => {}
+            Term::Group(_, _) => {}
             Term::Rule(rule) => {
                 for &id in grammar.get_matches_from_rule(*rule).iter() {
                     recursive_calculate_all_destination_matches(
@@ -148,20 +151,19 @@ fn recursive_calculate_all_destination_matches(
                         destinations,
                     );
                 }
-
-                if !empty_rules.is_empty(*rule) {
-                    break;
-                }
             }
         }
     }
 }
 
+/// Calculates the common starts and ends of the list of paths.
+/// If the paths contain any non-initializable elements (e.g. a match index
+/// that has non empty fields before it) then None will be returned.
 fn calculate_push_instructions_from_paths(
     grammar: &Grammar,
     empty: &EmptyRuleSolver,
     paths: &HashSet<Vec<MatchIndex>>,
-) -> (Vec<PushItem>, Option<StackDisconnect>) {
+) -> (Option<Vec<PushItem>>, Option<StackDisconnect>) {
     // Instructions that all paths start with (until they diverge)
     let common_start_instructions =
         calculate_common_starts(paths.iter().map(|p| p.iter()).collect());
@@ -173,7 +175,7 @@ fn calculate_push_instructions_from_paths(
 
     if common_start_instructions == common_end_instructions {
         // If the start and end are the same, then we can just return the start
-        let push_items = common_start_instructions
+        let push_items: Option<Vec<_>> = common_start_instructions
             .iter()
             .map(|i| convert_match_index_to_push_instruction(grammar, empty, i, true))
             .collect();
@@ -259,7 +261,7 @@ fn convert_match_index_to_push_instruction(
     empty_rules: &EmptyRuleSolver,
     match_index: &MatchIndex,
     linked_to_above: bool,
-) -> PushItem {
+) -> Option<PushItem> {
     let match_ = grammar.get(match_index.id);
 
     let mut push = PushItem {
@@ -273,20 +275,20 @@ fn convert_match_index_to_push_instruction(
 
         match term {
             Term::Token(_) => {
-                unreachable!();
+                return None;
             }
             Term::Group(_, _) => {
-                unreachable!();
+                return None;
             }
             Term::Rule(rule) => {
                 if let Some(empty) = empty_rules.get(*rule) {
                     push.append_empty_fields.push(empty.clone());
                 } else {
-                    unreachable!();
+                    return None;
                 }
             }
         }
     }
 
-    push
+    Some(push)
 }

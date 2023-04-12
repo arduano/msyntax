@@ -14,63 +14,44 @@ pub fn get_set_for_match(
     match_: MatchId,
     start_index: usize,
 ) -> Vec<TokenOrGroup> {
-    let mut first_set = Vec::new();
+    let offset = get_match_set_start_index(grammar, empty_rules, start_index, match_);
+
+    let Some(offset) = offset else {
+        return vec![];
+    };
 
     let match_ = grammar.get(match_);
+    let token_set = match_.terms.iter().skip(offset).map_while(|t| match t {
+        Term::Token(token) => Some(TokenOrGroup::Token(*token)),
+        Term::Group(group, rule) => Some(TokenOrGroup::Group(*group, *rule)),
+        Term::Rule(_) => None,
+    });
 
-    let mut has_passed_empty = false;
-    for term in match_.terms.iter().skip(start_index) {
-        match term {
-            Term::Token(token) => {
-                first_set.push(TokenOrGroup::Token(*token));
-            }
-            Term::Group(group, rule) => {
-                first_set.push(TokenOrGroup::Group(*group, *rule));
-            }
-            Term::Rule(rule) => {
-                if empty_rules.is_empty(*rule) {
-                    let passed_empty_and_passed_tokens = has_passed_empty && !first_set.is_empty();
-                    if passed_empty_and_passed_tokens {
-                        break;
-                    } else {
-                        has_passed_empty = true;
-                        continue;
-                    }
-                } else {
-                    break;
-                }
-            }
-        }
-    }
-
-    first_set
+    token_set.collect()
 }
 
 /// Same as `get_set_for_match`, except returns the index of where it starts.
-pub fn get_match_first_set_index(
+pub fn get_match_set_start_index(
     grammar: &Grammar,
     empty_rules: &EmptyRuleSolver,
+    start_index: usize,
     match_: MatchId,
 ) -> Option<usize> {
     let match_ = grammar.get(match_);
 
-    for (i, term) in match_.terms.iter().enumerate() {
-        match term {
-            Term::Token(_) => {
-                return Some(i);
-            }
-            Term::Group(_, _) => {
-                return Some(i);
-            }
-            Term::Rule(rule) => {
-                if empty_rules.is_empty(*rule) {
-                    continue;
-                } else {
-                    return None;
-                }
-            }
-        }
-    }
+    let empty_offset = match_
+        .terms
+        .iter()
+        .skip(start_index)
+        .position(|term| match term {
+            Term::Token(_) => true,
+            Term::Group(_, _) => true,
+            Term::Rule(rule) => !empty_rules.is_empty(*rule),
+        });
 
-    return None;
+    if let Some(empty_offset) = empty_offset {
+        Some(start_index + empty_offset)
+    } else {
+        None
+    }
 }

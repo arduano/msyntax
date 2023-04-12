@@ -27,7 +27,9 @@ pub enum Token {
     Fn,
     Struct,
     Crate,
+
     Eof,
+    Start,
 }
 
 #[derive(Debug, Clone, Copy, Hash, Eq, PartialEq)]

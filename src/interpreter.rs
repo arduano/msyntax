@@ -126,7 +126,9 @@ pub fn solve(solver: &GrammarSolver, tokens: Vec<ITokenOrGroup>) -> RuleValue {
 impl<'a> Interpreter<'a> {
     fn solve(mut self, root_rule: Rule) -> RuleValue {
         let first_set = self.solver.first_set_for_rule(root_rule);
-        self.solve_first_set(&[], first_set);
+        if !self.solve_first_set(&[], first_set) {
+            panic!("No first set matched");
+        }
 
         loop {
             dbg!(&self.stack);

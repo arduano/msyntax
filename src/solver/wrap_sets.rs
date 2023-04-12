@@ -332,9 +332,27 @@ pub fn pick_best_insert_action(actions: Vec<InsertAction>) -> Option<InsertActio
 }
 
 pub fn pick_best_wrap_action(actions: Vec<WrapAction>) -> WrapAction {
-    pick_best_item(actions.into_iter(), |a| a.wrap_actions.len() as u32).unwrap()
+    pick_best_item(actions.into_iter(), |a| {
+        // We want the shallowest wrap actions.
+        let depth_score = a.wrap_actions.len() as u32 * 100;
+
+        // For each wrap, we want the least amout of empty items to be added.
+        let wrap_empty_score: u32 = a
+            .wrap_actions
+            .iter()
+            .map(|w| w.left_empty.len() as u32 + w.right_empty.len() as u32)
+            .sum();
+
+        // If there are multiple equal shallow wrap actions, we want the one with the least
+        // empty values inserted.
+        let append_score = a.append_empty.len() as u32;
+
+        depth_score + wrap_empty_score + append_score
+    })
+    .unwrap()
 }
 
+/// Pick the item with the smallest score.
 pub fn pick_best_item<T>(
     items: impl Iterator<Item = T>,
     mut f: impl FnMut(&T) -> u32,
@@ -345,7 +363,7 @@ pub fn pick_best_item<T>(
     for item in items {
         let score = f(&item);
 
-        if score > best_score || best_item.is_none() {
+        if score < best_score || best_item.is_none() {
             best_item = Some(item);
             best_score = score;
         }

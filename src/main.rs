@@ -13,7 +13,11 @@ fn make_calc_grammar() -> Grammar {
     let mut grammar = Grammar::new();
     grammar.add(
         Rule::S,
-        vec![Term::Rule(Rule::Expr), Term::Token(Token::Eof)],
+        vec![
+            Term::Token(Token::Start),
+            Term::Rule(Rule::Expr),
+            Term::Token(Token::Eof),
+        ],
     );
     grammar.add(Rule::Expr, vec![Term::Rule(Rule::Add)]);
     grammar.add(
@@ -37,6 +41,8 @@ fn make_calc_grammar() -> Grammar {
     grammar.add(Rule::Term, vec![Term::Token(Token::Num)]);
     grammar.add(Rule::Term, vec![Term::Group(Group::Parens, Rule::Expr)]);
 
+    grammar.add(Rule::Term, vec![]);
+
     grammar
 }
 
@@ -44,7 +50,11 @@ fn make_struct_fn_grammar() -> Grammar {
     let mut grammar = Grammar::new();
     grammar.add(
         Rule::S,
-        vec![Term::Rule(Rule::Expr), Term::Token(Token::Eof)],
+        vec![
+            Term::Token(Token::Start),
+            Term::Rule(Rule::Expr),
+            Term::Token(Token::Eof),
+        ],
     );
     grammar.add(Rule::Expr, vec![Term::Rule(Rule::Struct)]);
     grammar.add(Rule::Expr, vec![Term::Rule(Rule::Fn)]);
@@ -71,7 +81,11 @@ fn make_array_grammar() -> Grammar {
     let mut grammar = Grammar::new();
     grammar.add(
         Rule::S,
-        vec![Term::Rule(Rule::Expr), Term::Token(Token::Eof)],
+        vec![
+            Term::Token(Token::Start),
+            Term::Rule(Rule::Expr),
+            Term::Token(Token::Eof),
+        ],
     );
     grammar.add(
         Rule::Expr,
@@ -85,37 +99,41 @@ fn make_array_grammar() -> Grammar {
 }
 
 fn main() {
-    let grammar = make_array_grammar();
+    let grammar = make_calc_grammar();
 
     let solver = solver::GrammarSolver::new(grammar).unwrap();
 
-    // let tokens = vec![
-    //     ITokenOrGroup::Token(Token::Num),
-    //     ITokenOrGroup::Token(Token::Plus),
-    //     ITokenOrGroup::Token(Token::Num),
-    //     ITokenOrGroup::Token(Token::Star),
-    //     ITokenOrGroup::Token(Token::Num),
-    //     ITokenOrGroup::Token(Token::Plus),
-    //     ITokenOrGroup::Token(Token::Num),
+    let tokens = vec![
+        ITokenOrGroup::Token(Token::Start),
+        // ITokenOrGroup::Token(Token::Num),
+        ITokenOrGroup::Token(Token::Plus),
+        ITokenOrGroup::Token(Token::Num),
+        ITokenOrGroup::Token(Token::Star),
+        ITokenOrGroup::Token(Token::Num),
+        ITokenOrGroup::Token(Token::Plus),
+        ITokenOrGroup::Token(Token::Num),
+        ITokenOrGroup::Token(Token::Eof),
+    ];
+
+    // let _tokens = vec![
+    //     ITokenOrGroup::Token(Token::Start),
+    //     // ITokenOrGroup::Token(Token::Pub),
+    //     // ITokenOrGroup::Token(Token::Star),
+    //     ITokenOrGroup::Token(Token::Struct),
     //     ITokenOrGroup::Token(Token::Eof),
     // ];
 
-    let _tokens = vec![
-        // ITokenOrGroup::Token(Token::Pub),
-        // ITokenOrGroup::Token(Token::Star),
-        ITokenOrGroup::Token(Token::Struct),
-        ITokenOrGroup::Token(Token::Eof),
-    ];
-
-    let tokens = vec![
-        // ITokenOrGroup::Token(Token::Num),
-        // ITokenOrGroup::Token(Token::Num),
-        // ITokenOrGroup::Token(Token::Num),
-        ITokenOrGroup::Token(Token::Num),
-        // ITokenOrGroup::Token(Token::Num),
-        ITokenOrGroup::Token(Token::Num),
-        ITokenOrGroup::Token(Token::Eof),
-    ];
+    // let tokens = vec![
+    //     ITokenOrGroup::Token(Token::Start),
+    //     // ITokenOrGroup::Token(Token::Num),
+    //     // ITokenOrGroup::Token(Token::Num),
+    //     // ITokenOrGroup::Token(Token::Num),
+    //     ITokenOrGroup::Token(Token::Num),
+    //     ITokenOrGroup::Token(Token::Num),
+    //     // ITokenOrGroup::Token(Token::Num),
+    //     ITokenOrGroup::Token(Token::Num),
+    //     ITokenOrGroup::Token(Token::Eof),
+    // ];
 
     let result = solve(&solver, tokens);
     dbg!(result);
