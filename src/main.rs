@@ -39,9 +39,16 @@ fn make_calc_grammar() -> Grammar {
     );
     grammar.add(Rule::Mul, vec![Term::Rule(Rule::Term)]);
     grammar.add(Rule::Term, vec![Term::Token(Token::Num)]);
-    grammar.add(Rule::Term, vec![Term::Group(Group::Parens, Rule::Expr)]);
 
-    grammar.add(Rule::Term, vec![]);
+    grammar.add(Rule::Term, vec![Term::Group(Group::Parens, Rule::S)]);
+    grammar.add(
+        Rule::Term,
+        vec![
+            Term::Token(Token::LParen),
+            Term::Rule(Rule::Expr),
+            Term::Token(Token::RParen),
+        ],
+    );
 
     grammar
 }
@@ -103,11 +110,27 @@ fn main() {
 
     let solver = solver::GrammarSolver::new(grammar).unwrap();
 
+    // let tokens = vec![
+    //     ITokenOrGroup::Token(Token::Start),
+    //     ITokenOrGroup::Token(Token::Num),
+    //     ITokenOrGroup::Token(Token::Plus),
+    //     ITokenOrGroup::Token(Token::Num),
+    //     ITokenOrGroup::Token(Token::Star),
+    //     ITokenOrGroup::Token(Token::Num),
+    //     ITokenOrGroup::Token(Token::Plus),
+    //     ITokenOrGroup::Token(Token::Num),
+    //     ITokenOrGroup::Token(Token::Eof),
+    // ];
+
     let tokens = vec![
         ITokenOrGroup::Token(Token::Start),
-        // ITokenOrGroup::Token(Token::Num),
-        ITokenOrGroup::Token(Token::Plus),
-        ITokenOrGroup::Token(Token::Num),
+        ITokenOrGroup::Group(vec![
+            ITokenOrGroup::Token(Token::Start),
+            ITokenOrGroup::Token(Token::Num),
+            ITokenOrGroup::Token(Token::Plus),
+            ITokenOrGroup::Token(Token::Num),
+            ITokenOrGroup::Token(Token::Eof),
+        ]),
         ITokenOrGroup::Token(Token::Star),
         ITokenOrGroup::Token(Token::Num),
         ITokenOrGroup::Token(Token::Plus),

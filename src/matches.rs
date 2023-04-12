@@ -7,9 +7,8 @@ pub enum Rule {
     Add,
     Mul,
     Term,
-    LParen,
-    RParen,
-
+    Lambda,
+    Args,
     Static,
     Modifier,
     Vis,
@@ -21,12 +20,17 @@ pub enum Rule {
 #[derive(Debug, Clone, Copy, Hash, Eq, PartialEq)]
 pub enum Token {
     Num,
+    Name,
     Plus,
     Star,
     Pub,
     Fn,
     Struct,
     Crate,
+    Arrow,
+
+    LParen,
+    RParen,
 
     Eof,
     Start,

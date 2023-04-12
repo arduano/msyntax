@@ -29,7 +29,3 @@ impl EmptySolverRuleValue {
     }
 }
 
-pub struct IncompleteMatch {
-    pub id: MatchId,
-    pub fields: Vec<EmptySolverRuleValue>,
-}

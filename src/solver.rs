@@ -15,7 +15,6 @@ mod cyclical;
 mod empty_rules;
 mod first_sets;
 mod follow_sets;
-mod identical_check;
 mod path;
 mod seal_rules;
 mod structure;
@@ -38,7 +37,6 @@ pub enum GrammarError {
 
 pub struct GrammarSolver {
     grammar: Grammar,
-    empty_rules: EmptyRuleSolver,
     first_sets: FirstSets,
     follow_sets: FollowSets,
     wrap_sets: WrapSets,
@@ -57,7 +55,6 @@ impl GrammarSolver {
 
         Ok(Self {
             grammar,
-            empty_rules,
             first_sets,
             follow_sets,
             wrap_sets,

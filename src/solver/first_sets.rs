@@ -82,6 +82,8 @@ impl FirstSets {
     }
 }
 
+/// Use a recursive function to calculate all possible matches that can be reached from the current match,
+/// and the paths that may be required to reach them.
 fn calculate_all_destination_matches(
     grammar: &Grammar,
     empty_rules: &EmptyRuleSolver,
@@ -104,6 +106,11 @@ fn calculate_all_destination_matches(
     destinations
 }
 
+/// Recursively calculate all paths from a starting rule to possible starting token sets which
+/// may be nested deep inside the grammar trees.
+/// Because we use the possible paths to determine which paths we must keep (start and end segments)
+/// and which we should throw away (middle segments), we need to also iterate over all possible
+/// children too, not just the ones that are directly reachable from the starting rule.
 fn recursive_calculate_all_destination_matches(
     grammar: &Grammar,
     empty_rules: &EmptyRuleSolver,
@@ -139,8 +146,11 @@ fn recursive_calculate_all_destination_matches(
         let matches = prev_matches.push(&next_index);
 
         match term {
-            Term::Token(_) => {}
-            Term::Group(_, _) => {}
+            // We don't filter out non empty paths, they will be filtered out later.
+            // We need to know all the possible paths to accurately generate the start/end
+            // sets as well as the accurate linking.
+            Term::Token(_) | Term::Group(_, _) => {}
+
             Term::Rule(rule) => {
                 for &id in grammar.get_matches_from_rule(*rule).iter() {
                     recursive_calculate_all_destination_matches(
