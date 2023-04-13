@@ -257,6 +257,7 @@ fn are_terms_empty(terms: &[Term], grammar: &EmptyRuleSolver) -> bool {
     true
 }
 
+/// Extend the builder with the current RecursiveWrap list
 fn extend_builder_from_matches(
     grammar: &Grammar,
     empty_rules: &EmptyRuleSolver,
@@ -289,8 +290,10 @@ fn extend_builder_from_matches(
                 .push(wrap);
         }
 
-        let remaining_terms = &match_.terms[wrap.index.index + 1..];
-        let can_empty_wrap = are_terms_empty(remaining_terms, empty_rules);
+        let left_terms = &match_.terms[0..wrap.index.index];
+        let right_terms = &match_.terms[wrap.index.index + 1..];
+        let can_empty_wrap =
+            are_terms_empty(left_terms, empty_rules) && are_terms_empty(right_terms, empty_rules);
 
         if can_empty_wrap {
             // Map the fields to the empty values
@@ -302,8 +305,8 @@ fn extend_builder_from_matches(
                     .collect()
             };
 
-            let left_empty = terms_into_emptys(&match_.terms[0..wrap.index.index]);
-            let right_empty = terms_into_emptys(&match_.terms[wrap.index.index + 1..]);
+            let left_empty = terms_into_emptys(left_terms);
+            let right_empty = terms_into_emptys(right_terms);
 
             let wrap_action = EmptyWrapAction {
                 match_id: wrap.index.id,

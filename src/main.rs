@@ -53,6 +53,56 @@ fn make_calc_grammar() -> Grammar {
     grammar
 }
 
+fn make_calc2_grammar() -> Grammar {
+    let mut grammar = Grammar::new();
+    grammar.add(
+        Rule::S,
+        vec![
+            Term::Token(Token::Start),
+            Term::Rule(Rule::Expr),
+            Term::Token(Token::Eof),
+        ],
+    );
+    grammar.add(Rule::Expr, vec![Term::Rule(Rule::Add)]);
+    grammar.add(
+        Rule::Add,
+        vec![
+            Term::Rule(Rule::Add),
+            Term::Rule(Rule::Op2),
+            Term::Rule(Rule::Mul),
+        ],
+    );
+    grammar.add(Rule::Add, vec![Term::Rule(Rule::Mul)]);
+    grammar.add(
+        Rule::Mul,
+        vec![
+            Term::Rule(Rule::Mul),
+            Term::Rule(Rule::Op1),
+            Term::Rule(Rule::Term),
+        ],
+    );
+    grammar.add(Rule::Mul, vec![Term::Rule(Rule::Term)]);
+    grammar.add(Rule::Term, vec![Term::Token(Token::Num)]);
+
+    grammar.add(Rule::Op1, vec![Term::Token(Token::Star)]);
+    grammar.add(Rule::Op1, vec![Term::Token(Token::Slash)]);
+
+    grammar.add(Rule::Op2, vec![Term::Token(Token::Plus)]);
+    grammar.add(Rule::Op2, vec![Term::Token(Token::Minus)]);
+
+    grammar.add(Rule::Term, vec![Term::Group(Group::Parens, Rule::S)]);
+    grammar.add(
+        Rule::Term,
+        vec![
+            Term::Token(Token::LParen),
+            Term::Rule(Rule::Expr),
+            Term::Token(Token::RParen),
+        ],
+    );
+
+    grammar
+}
+
 fn make_struct_fn_grammar() -> Grammar {
     let mut grammar = Grammar::new();
     grammar.add(
@@ -106,7 +156,7 @@ fn make_array_grammar() -> Grammar {
 }
 
 fn main() {
-    let grammar = make_calc_grammar();
+    let grammar = make_calc2_grammar();
 
     let solver = solver::GrammarSolver::new(grammar);
 
