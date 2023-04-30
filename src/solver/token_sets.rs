@@ -46,7 +46,7 @@ pub fn get_match_set_start_index(
         .position(|term| match term {
             Term::Token(_) => true,
             Term::Group(_, _) => true,
-            Term::Rule(rule) => !empty_rules.is_empty(*rule),
+            Term::Rule(_) => false,
         });
 
     if let Some(empty_offset) = empty_offset {

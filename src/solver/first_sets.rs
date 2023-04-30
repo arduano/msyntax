@@ -223,7 +223,7 @@ fn calculate_push_instructions_from_paths(
         convert_match_index_to_push_instruction(grammar, empty, mi, !is_last)
     });
 
-    let push_items = start_iter.chain(end_iter).collect();
+    let push_items: Option<Vec<_>> = start_iter.chain(end_iter).collect();
 
     (push_items, disconnect)
 }

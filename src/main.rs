@@ -164,6 +164,7 @@ fn main() {
         ITokenOrGroup::Token(Token::Start),
         ITokenOrGroup::Token(Token::Num),
         ITokenOrGroup::Token(Token::Plus),
+        ITokenOrGroup::Token(Token::Plus),
         ITokenOrGroup::Token(Token::Num),
         ITokenOrGroup::Token(Token::Star),
         ITokenOrGroup::Token(Token::Num),

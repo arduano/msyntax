@@ -54,6 +54,7 @@ impl<'a> TokenReader<'a> {
 pub enum Value {
     Token(Token),
     Rule(RuleValue),
+    Error,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -95,10 +96,10 @@ enum WrapStatusAction<'a> {
     },
     /// Seal the current match, then wrap it in the wrap_above, until finally inserting it into the next parent.
     InsertIntoAbove {
-        wrap_above: &'a [EmptyWrapAction],
-
         /// Append these before sealing
         seal_append: &'a [EmptySolverRuleValue],
+
+        wrap_above: &'a [EmptyWrapAction],
     },
 }
 
@@ -106,6 +107,18 @@ enum WrapStatus<'a> {
     Action(WrapStatusAction<'a>),
     Matches,
     Error,
+}
+
+enum ReduceSolveResult {
+    Finished(RuleValue),
+    Success,
+    Error,
+}
+
+enum ErrorResolveAction<'a> {
+    AppendError,
+    InsertIntoAbove { wrap_above: &'a [EmptyWrapAction] },
+    DiscardChildAndInsertError,
 }
 
 enum HasChild {
@@ -140,98 +153,190 @@ impl<'a> Interpreter<'a> {
                 continue;
             }
 
-            let mut reduce_stack = Vec::new();
-
-            let mut i = self.stack.len() - 1;
-            loop {
-                let has_child = if i != self.stack.len() - 1 {
-                    HasChild::Yes
-                } else {
-                    HasChild::No
-                };
-
-                let status = self.get_wrap_status_for_stack_item(i, has_child);
-
-                match status {
-                    WrapStatus::Matches => break,
-                    WrapStatus::Error => panic!("No follow set matched, and no rule to reduce to"),
-                    WrapStatus::Action(action) => {
-                        let should_break = match action {
-                            WrapStatusAction::WrapWith { .. } => true,
-                            WrapStatusAction::InsertIntoAbove { .. } => false,
-                        };
-                        reduce_stack.push(action);
-
-                        if should_break {
-                            break;
-                        }
-                    }
+            let reduce_result = self.solve_reduce_sets();
+            match reduce_result {
+                ReduceSolveResult::Finished(value) => return value,
+                ReduceSolveResult::Success => continue,
+                ReduceSolveResult::Error => {
+                    // Continue
                 }
-
-                if i == 0 {
-                    break;
-                }
-
-                i -= 1;
             }
 
-            for action in reduce_stack {
-                match action {
-                    WrapStatusAction::WrapWith {
-                        wrap_above,
+            println!("Error");
+            while !self.solve_error() {
+                // While not solved, skip tokens
+                let token = self.token_reader.next();
+                println!("Skipping token: {:?}", token);
+            }
+        }
+    }
+
+    fn solve_reduce_sets(&mut self) -> ReduceSolveResult {
+        let mut reduce_stack = Vec::new();
+
+        let mut i = self.stack.len() - 1;
+        loop {
+            let has_child = if i != self.stack.len() - 1 {
+                HasChild::Yes
+            } else {
+                HasChild::No
+            };
+
+            let status = self.get_wrap_status_for_stack_item(i, has_child);
+
+            match status {
+                WrapStatus::Matches => break,
+                WrapStatus::Error => return ReduceSolveResult::Error,
+                WrapStatus::Action(action) => {
+                    let should_break = match action {
+                        WrapStatusAction::WrapWith { .. } => true,
+                        WrapStatusAction::InsertIntoAbove { .. } => false,
+                    };
+                    reduce_stack.push(action);
+
+                    if should_break {
+                        break;
+                    }
+                }
+            }
+
+            if i == 0 {
+                break;
+            }
+
+            i -= 1;
+        }
+
+        for action in reduce_stack {
+            match action {
+                WrapStatusAction::WrapWith {
+                    wrap_above,
+                    match_id,
+                    append_before,
+                    seal_append,
+                } => {
+                    println!("WrapWith");
+
+                    self.append_emptys(seal_append);
+
+                    for wrap in wrap_above {
+                        self.wrap_top_stack_item_into_empty(wrap);
+                    }
+
+                    let value = self.seal_top_stack_item();
+
+                    let match_value = MatchValue {
                         match_id,
-                        append_before,
-                        seal_append,
-                    } => {
-                        println!("WrapWith");
+                        values: vec![],
+                    };
+                    let stack_value = StackItem {
+                        linked_to_above: false,
+                        match_value,
+                    };
+                    self.stack.push(stack_value);
 
-                        self.append_emptys(seal_append);
+                    self.append_emptys(append_before);
+                    self.append_value(value);
+                }
+                WrapStatusAction::InsertIntoAbove {
+                    wrap_above,
+                    seal_append,
+                } => {
+                    println!("InsertIntoAbove");
 
-                        for wrap in wrap_above {
-                            self.wrap_top_stack_item_into_empty(wrap);
-                        }
+                    self.append_emptys(seal_append);
 
-                        let value = self.seal_top_stack_item();
-
-                        let match_value = MatchValue {
-                            match_id,
-                            values: vec![],
-                        };
-                        let stack_value = StackItem {
-                            linked_to_above: false,
-                            match_value,
-                        };
-                        self.stack.push(stack_value);
-
-                        self.append_emptys(append_before);
-                        self.append_value(value);
+                    for wrap in wrap_above {
+                        self.wrap_top_stack_item_into_empty(wrap);
                     }
-                    WrapStatusAction::InsertIntoAbove {
-                        wrap_above,
-                        seal_append,
-                    } => {
-                        println!("InsertIntoAbove");
 
-                        self.append_emptys(seal_append);
+                    let value = self.seal_top_stack_item();
 
-                        for wrap in wrap_above {
-                            self.wrap_top_stack_item_into_empty(wrap);
-                        }
-
-                        let value = self.seal_top_stack_item();
-
-                        if self.stack.len() == 0 {
-                            return match value {
-                                Value::Rule(rule) => rule,
-                                _ => panic!("Expected rule value"),
-                            };
-                        }
-
-                        self.append_value(value);
+                    if self.stack.len() == 0 {
+                        return match value {
+                            Value::Rule(rule) => ReduceSolveResult::Finished(rule),
+                            _ => panic!("Expected rule value"),
+                        };
                     }
+
+                    self.append_value(value);
                 }
             }
         }
+
+        ReduceSolveResult::Success
+    }
+
+    fn solve_error(&mut self) -> bool {
+        let mut action_stack = Vec::new();
+
+        let mut i = self.stack.len() - 1;
+        let mut index = self.get_match_index_of_stack_item(i);
+        let mut max_index = self.solver.get_match(index.id).terms.len();
+        loop {
+            // We successfully matched, so break
+            if self.does_follow_set_match_for(index) {
+                break;
+            }
+
+            index.index += 1;
+            // If the match isn't finished, continue
+            if index.index < max_index {
+                action_stack.push(ErrorResolveAction::AppendError);
+                continue;
+            }
+
+            // If we reached the end of the last stack item, we failed
+            if i == 0 {
+                return false;
+            }
+
+            let parent_rule = self.get_expecting_rule_for_stack_item(i - 1);
+            let child_rule = self.solver.get_match(index.id).rule;
+
+            // If there's any insert action from child to parent then insert it,
+            // otherwise discard it
+            if self.stack[i].linked_to_above {
+                action_stack.push(ErrorResolveAction::InsertIntoAbove { wrap_above: &[] });
+            } else {
+                let wrap_actions = self.solver.get_wrap_data(parent_rule, child_rule);
+                if let Some(wrap_actions) = wrap_actions {
+                    if let Some(insert_action) = &wrap_actions.insert_action {
+                        action_stack.push(ErrorResolveAction::InsertIntoAbove {
+                            wrap_above: &insert_action.wrap_actions,
+                        });
+                    } else {
+                        action_stack.push(ErrorResolveAction::DiscardChildAndInsertError);
+                    }
+                } else {
+                    action_stack.push(ErrorResolveAction::DiscardChildAndInsertError);
+                }
+            }
+
+            i -= 1;
+            index = self.get_match_index_of_stack_item(i);
+            max_index = self.solver.get_match(index.id).terms.len();
+        }
+
+        for action in action_stack {
+            match action {
+                ErrorResolveAction::AppendError => self.append_error(),
+                ErrorResolveAction::InsertIntoAbove { wrap_above } => {
+                    for wrap in wrap_above {
+                        self.wrap_top_stack_item_into_empty(wrap);
+                    }
+
+                    let value = self.seal_top_stack_item();
+                    self.append_value(value);
+                }
+                ErrorResolveAction::DiscardChildAndInsertError => {
+                    self.stack.pop();
+                    self.append_error();
+                }
+            }
+        }
+
+        true
     }
 
     fn get_matching_first_set<'b>(&self, first_sets: &'b [FirstSet]) -> Option<&'b FirstSet> {
@@ -292,6 +397,11 @@ impl<'a> Interpreter<'a> {
         }
 
         false
+    }
+
+    fn does_follow_set_match_for(&self, ind: MatchIndex) -> bool {
+        let follow_sets = self.solver.follow_set_for_match(ind);
+        self.does_follow_set_match(follow_sets)
     }
 
     fn solve_follow_sets(&mut self, follow_sets: &[FollowSet]) -> bool {
@@ -367,6 +477,11 @@ impl<'a> Interpreter<'a> {
         top_value.match_value.values.push(value);
     }
 
+    fn append_error(&mut self) {
+        let top_value = self.stack.last_mut().unwrap();
+        top_value.match_value.values.push(Value::Error);
+    }
+
     fn process_empty_item(item: &EmptySolverRuleValue) -> Value {
         let rule = RuleValue {
             rule: item.rule,
@@ -408,8 +523,9 @@ impl<'a> Interpreter<'a> {
 
         let should_propagate_inner_rule = if stack_item.match_value.values.len() == 1 {
             match stack_item.match_value.values.first().unwrap() {
-                Value::Token(_token) => false,
-                Value::Rule(_rule) => true,
+                Value::Token(_) => false,
+                Value::Rule(_) => true,
+                Value::Error => false,
             }
         } else {
             false
@@ -419,8 +535,8 @@ impl<'a> Interpreter<'a> {
             // This condition helps make the tree of rules look cleaner when printed
             let mut stack_item = stack_item;
             let inner_rule = match stack_item.match_value.values.pop().unwrap() {
-                Value::Token(_) => unreachable!(),
                 Value::Rule(rule) => rule,
+                _ => unreachable!(),
             };
 
             RuleValue {
@@ -432,15 +548,7 @@ impl<'a> Interpreter<'a> {
             RuleValue {
                 rule: action.into_rule,
                 match_id: stack_item.match_value.match_id,
-                values: stack_item
-                    .match_value
-                    .values
-                    .into_iter()
-                    .map(|value| match value {
-                        Value::Token(token) => Value::Token(token),
-                        Value::Rule(rule) => Value::Rule(rule),
-                    })
-                    .collect(),
+                values: stack_item.match_value.values,
             }
         };
 
@@ -545,8 +653,7 @@ impl<'a> Interpreter<'a> {
             .expect("No wrap data found");
 
         for action in &wrap_data.wrap_actions {
-            let follow_set = self.solver.follow_set_for_match(action.if_matches);
-            if self.does_follow_set_match(follow_set) {
+            if self.does_follow_set_match_for(action.if_matches) {
                 return WrapStatus::Action(WrapStatusAction::WrapWith {
                     wrap_above: &action.wrap_actions,
                     append_before: &action.append_empty,
@@ -756,6 +863,7 @@ impl std::fmt::Display for ValueDisplay<'_> {
                     spacing: self.spacing
                 }
             ),
+            Value::Error => write!(f, "{}Error", self.spacing),
         }
     }
 }
