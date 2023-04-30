@@ -156,22 +156,22 @@ fn make_array_grammar() -> Grammar {
 }
 
 fn main() {
-    let grammar = make_calc2_grammar();
+    let grammar = make_struct_fn_grammar();
 
     let solver = solver::GrammarSolver::new(grammar);
 
-    let tokens = vec![
-        ITokenOrGroup::Token(Token::Start),
-        ITokenOrGroup::Token(Token::Num),
-        ITokenOrGroup::Token(Token::Plus),
-        ITokenOrGroup::Token(Token::Plus),
-        ITokenOrGroup::Token(Token::Num),
-        ITokenOrGroup::Token(Token::Star),
-        ITokenOrGroup::Token(Token::Num),
-        ITokenOrGroup::Token(Token::Plus),
-        ITokenOrGroup::Token(Token::Num),
-        ITokenOrGroup::Token(Token::Eof),
-    ];
+    // let tokens = vec![
+    //     ITokenOrGroup::Token(Token::Start),
+    //     ITokenOrGroup::Token(Token::Num),
+    //     ITokenOrGroup::Token(Token::Plus),
+    //     ITokenOrGroup::Token(Token::Plus),
+    //     ITokenOrGroup::Token(Token::Num),
+    //     ITokenOrGroup::Token(Token::Star),
+    //     ITokenOrGroup::Token(Token::Num),
+    //     ITokenOrGroup::Token(Token::Plus),
+    //     ITokenOrGroup::Token(Token::Num),
+    //     ITokenOrGroup::Token(Token::Eof),
+    // ];
 
     // let tokens = vec![
     //     ITokenOrGroup::Token(Token::Start),
@@ -189,13 +189,13 @@ fn main() {
     //     ITokenOrGroup::Token(Token::Eof),
     // ];
 
-    // let _tokens = vec![
-    //     ITokenOrGroup::Token(Token::Start),
-    //     // ITokenOrGroup::Token(Token::Pub),
-    //     // ITokenOrGroup::Token(Token::Star),
-    //     ITokenOrGroup::Token(Token::Struct),
-    //     ITokenOrGroup::Token(Token::Eof),
-    // ];
+    let tokens = vec![
+        ITokenOrGroup::Token(Token::Start),
+        // ITokenOrGroup::Token(Token::Pub),
+        // ITokenOrGroup::Token(Token::Star),
+        ITokenOrGroup::Token(Token::Struct),
+        ITokenOrGroup::Token(Token::Eof),
+    ];
 
     // let tokens = vec![
     //     ITokenOrGroup::Token(Token::Start),

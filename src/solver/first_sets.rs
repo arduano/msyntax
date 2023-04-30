@@ -53,7 +53,7 @@ impl FirstSets {
             let mut sets = Vec::new();
 
             for (id, paths) in matches {
-                let tokens = get_set_for_match(grammar, empty, id, 0);
+                let tokens = get_set_for_match(grammar, id, 0);
                 let (then, disconnect) =
                     calculate_push_instructions_from_paths(grammar, empty, &paths);
 
@@ -72,6 +72,8 @@ impl FirstSets {
 
             rules.insert(rule, sets);
         }
+
+        dbg!(&rules);
 
         Self {
             first_sets_per_rule: rules,
@@ -118,7 +120,7 @@ fn recursive_calculate_all_destination_matches(
     next_match: MatchId,
     destinations: &mut HashMap<MatchId, HashSet<Vec<MatchIndex>>>,
 ) {
-    if let Some(i) = get_match_set_start_index(grammar, empty_rules, 0, next_match) {
+    if let Some(i) = get_match_set_start_index(grammar, 0, next_match) {
         let last_match = MatchIndex::new_at_index(next_match, i);
         let full_list = prev_matches.push(&last_match);
 

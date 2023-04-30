@@ -1,7 +1,5 @@
 use crate::matches::{Grammar, Group, MatchId, Rule, Term, Token};
 
-use super::empty_rules::EmptyRuleSolver;
-
 #[derive(Debug, Clone, Copy, Hash, Eq, PartialEq)]
 pub enum TokenOrGroup {
     Token(Token),
@@ -10,11 +8,10 @@ pub enum TokenOrGroup {
 
 pub fn get_set_for_match(
     grammar: &Grammar,
-    empty_rules: &EmptyRuleSolver,
     match_: MatchId,
     start_index: usize,
 ) -> Vec<TokenOrGroup> {
-    let offset = get_match_set_start_index(grammar, empty_rules, start_index, match_);
+    let offset = get_match_set_start_index(grammar, start_index, match_);
 
     let Some(offset) = offset else {
         return vec![];
@@ -33,7 +30,6 @@ pub fn get_set_for_match(
 /// Same as `get_set_for_match`, except returns the index of where it starts.
 pub fn get_match_set_start_index(
     grammar: &Grammar,
-    empty_rules: &EmptyRuleSolver,
     start_index: usize,
     match_: MatchId,
 ) -> Option<usize> {
